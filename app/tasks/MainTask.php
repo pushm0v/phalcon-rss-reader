@@ -10,6 +10,10 @@ class MainTask extends \Phalcon\CLI\Task
         echo "Usage :\n";
         echo "\t* Add new source of RSS : php app/cli.php main newSource [RSS_URL]\n";
         echo "\t* Fetch All RSS \t: php app/cli.php main fetchRss\n";
+        echo "\n\n";
+        echo "Some RSS Source :\n";
+        echo "\t- http://www.antaranews.com/rss/nasional\n";
+        echo "\t- http://rss.detik.com/index.php/detikcom\n";
         echo "===========================\n\n";
     }
 
