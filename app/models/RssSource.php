@@ -10,6 +10,11 @@ class RssSource extends \Phalcon\Mvc\Model {
     protected $last_build_date;
     protected $pub_date;
 
+    public function getId()
+    {
+        return $this->id;
+    }
+
     public function getUrl()
     {
         return $this->url;

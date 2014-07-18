@@ -22,9 +22,16 @@ class MainTask extends \Phalcon\CLI\Task
         $sources = RssSource::find();
         foreach($sources as $s)
         {
+            echo "* Fetching " . $s->getTitle() . "\n";
             $rss = $this->getRss($s->getUrl());
-            var_dump($rss);
+            foreach($rss as $r)
+            {
+                $content = new RssContent();
+                $r['rss_source_id'] = $s->getId();
+                $content->save($r);
+            }
         }
+        echo "* Done fetching.\n\n";
     }
 
     public function newSourceAction() {
@@ -54,7 +61,19 @@ class MainTask extends \Phalcon\CLI\Task
         if (!($x = simplexml_load_file($url)))
             return;
 
-        return $x;
+        $rss = array();
+        foreach ($x->channel->item as $k => $r)
+        {
+            $rss[] = array(
+                "title" => (String)$r->title,
+                "description" => (String)$r->description,
+                "pub_date" => date("Y-m-d H:i:s",strtotime((String)$r->pubDate)),
+                "link" => (String)$r->link,
+                "fetch_date" => date("Y-m-d H:i:s")
+            );
+        }
+
+        return $rss;
     }
 
     private function parseChannel($url)
