@@ -19,7 +19,7 @@ To run this application on your machine, you need at least:
 
 #### HowTo
 
-* Dump SQL from file dump.sql into your MySQL Database. ( mysqldump -uYOURUSER -p YOURSCHEMA < dump.sql )
+* Dump SQL from file dump.sql into your MySQL Database. ( mysql -uYOURUSER -p YOURSCHEMA < dump.sql )
 * Open Console / CMD
 * Change directory into project's root folder
 * Run : php app/cli.php
