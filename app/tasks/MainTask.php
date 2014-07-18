@@ -5,12 +5,12 @@ class MainTask extends \Phalcon\CLI\Task
     public function mainAction() {
         echo "===========================\n";
         echo "Kurio Programming Test\n";
-        echo "===========================\n\n";
-        echo "RSS Reader\n\n";
+        echo "===========================\n";
+        echo "RSS Reader\n";
         echo "Usage :\n";
-        echo "\t* Add new source of RSS : php app/cli.php main newSource [RSS_URL]\n";
-        echo "\t* Fetch All RSS \t: php app/cli.php main fetchRss\n";
-        echo "\n\n";
+        echo "\t* Add new source of RSS : php app/cli.php main newSource [URL] [RSS_URL]\n";
+        echo "\t  Ex: php app/cli.php main newSource www.detik.com http://rss.detik.com/index.php/detikcom\n";
+        echo "\t* Fetch All RSS Sources\t: php app/cli.php main fetchRss\n";
         echo "Some RSS Source :\n";
         echo "\t- http://www.antaranews.com/rss/nasional\n";
         echo "\t- http://rss.detik.com/index.php/detikcom\n";
@@ -19,17 +19,17 @@ class MainTask extends \Phalcon\CLI\Task
 
     public function fetchRssAction() {
 
-        $sources = RssSource::find();
+        $sources = Sources::find();
         if (count($sources) > 0)
         {
             foreach($sources as $s)
             {
-                echo "* Fetching " . $s->getTitle() . "\n";
-                $rss = $this->getRss($s->getUrl());
+                $rss = $this->getRss($s->rss_url);
+                echo "* Fetching " . $s->url . ", " . count($rss) . " Feeds\n";
                 foreach($rss as $r)
                 {
-                    $content = new RssContent();
-                    $r['rss_source_id'] = $s->getId();
+                    $content = new Articles();
+                    $r['source_id'] = $s->id;
                     $content->save($r);
                 }
             }
@@ -43,17 +43,20 @@ class MainTask extends \Phalcon\CLI\Task
 
         $params = $this->dispatcher->getParams();
         $newUrl = $params[0];
+        $newRssUrl = $params[1];
         //Lets check it first, exist ?
-        $source = RssSource::findFirst(array(
-            "url" => $newUrl
-        ));
+        $source = Sources::query()
+            ->where("rss_url = :rss_url:")
+            ->bind(array("rss_url" => $newRssUrl))
+            ->execute();
 
-        if (false == $source)
+        if (count($source) == 0)
         {
-            $s = new RssSource();
-            $channel = $this->parseChannel($newUrl);
-
-            $s->save($channel);
+            $s = new Sources();
+            $s->save(array(
+                "url" => $newUrl,
+                "rss_url" => $newRssUrl,
+            ));
             echo "URL Source saved!\n";
         }
         else
@@ -63,41 +66,86 @@ class MainTask extends \Phalcon\CLI\Task
 
     private function getRss($url)
     {
-        if (!($x = simplexml_load_file($url)))
-            return;
+//        $xml = file_get_contents($url, false);
+//
+//
+//        if (!($x = simplexml_load_string($xml)))
+//            return;
+//
+//        $rss = array();
+//        foreach ($x->channel->item as $k => $r)
+//        {
+//            $content = (String)$r->description;
+//            $title = (String)$r->title;
+//
+//            if ($this->isDuplicate($title,$content))
+//                continue;
+//
+//            $rss[] = array(
+//                "title" => $title,
+//                "content" => $content,
+//                "summary" => $this->summarize($content),
+//                "publish_time" => date("Y-m-d H:i:s",strtotime((String)$r->pubDate)),
+//            );
+//        }
+//
+//        return $rss;
 
         $rss = array();
-        foreach ($x->channel->item as $k => $r)
+        $feed = new SimplePie();
+        $feed->set_feed_url($url);
+        $feed->enable_cache(false);
+        $feed->init();
+
+        foreach($feed->get_items() as $item)
         {
+            $content = $item->get_content();
+            $title = $item->get_title();
             $rss[] = array(
-                "title" => (String)$r->title,
-                "description" => (String)$r->description,
-                "pub_date" => date("Y-m-d H:i:s",strtotime((String)$r->pubDate)),
-                "link" => (String)$r->link,
-                "fetch_date" => date("Y-m-d H:i:s")
+                "title" => $title,
+                "content" => $content,
+                "summary" => $this->summarize($content),
+                "publish_time" => date("Y-m-d H:i:s",strtotime($item->get_date())),
             );
         }
 
         return $rss;
     }
 
-    private function parseChannel($url)
-    {
-        $rss = $this->getRss($url);
-        if ($rss->channel)
-        {
-            return array(
-                "url" => $url,
-                "title" => (String)$rss->channel->title,
-                "description" => (String)$rss->channel->description,
-                "lang" => (String)$rss->channel->language,
-                "last_build_date" => ($rss->channel->lastBuildDate) ? date("Y-m-d H:i:s",strtotime((String)$rss->channel->lastBuildDate)) : date(now) ,
-                "pub_date" => ($rss->channel->pubDate) ? date("Y-m-d H:i:s",strtotime((String)$rss->channel->pubDate)) : date(now) ,
-            );
+    private function summarize($input, $length=150, $ellipses = true, $strip_html = true) {
+        //strip tags, if desired
+        if ($strip_html) {
+            $input = strip_tags($input);
         }
 
-        return array(
-            "url" => $url
-        );
+        //no need to trim, already shorter than trim length
+        if (strlen($input) <= $length) {
+            return $input;
+        }
+
+        //find last space within length
+        $last_space = strrpos(substr($input, 0, $length), ' ');
+        $trimmed_text = substr($input, 0, $last_space);
+
+        //add ellipses (...)
+        if ($ellipses) {
+            $trimmed_text .= '...';
+        }
+
+        return $trimmed_text;
+    }
+
+    private function isDuplicate($title,$content)
+    {
+        $rss = Articles::query()
+            ->where("title = :title:")
+            ->orWhere("content = :content:")
+            ->bind(array("title" => $title,"content" => $content))
+            ->execute();
+
+        if (count($rss) > 0)
+            return true;
+
+        return false;
     }
 }

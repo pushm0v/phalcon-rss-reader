@@ -20,6 +20,9 @@ $loader->registerDirs(
     array(
         APPLICATION_PATH . '/tasks',
         APPLICATION_PATH . '/models',
+
+        //External Library
+        APPLICATION_PATH . '/library',
     )
 );
 $loader->register();
