@@ -66,31 +66,6 @@ class MainTask extends \Phalcon\CLI\Task
 
     private function getRss($url)
     {
-//        $xml = file_get_contents($url, false);
-//
-//
-//        if (!($x = simplexml_load_string($xml)))
-//            return;
-//
-//        $rss = array();
-//        foreach ($x->channel->item as $k => $r)
-//        {
-//            $content = (String)$r->description;
-//            $title = (String)$r->title;
-//
-//            if ($this->isDuplicate($title,$content))
-//                continue;
-//
-//            $rss[] = array(
-//                "title" => $title,
-//                "content" => $content,
-//                "summary" => $this->summarize($content),
-//                "publish_time" => date("Y-m-d H:i:s",strtotime((String)$r->pubDate)),
-//            );
-//        }
-//
-//        return $rss;
-
         $rss = array();
         $feed = new SimplePie();
         $feed->set_feed_url($url);
