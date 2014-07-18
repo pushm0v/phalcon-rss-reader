@@ -20,17 +20,22 @@ class MainTask extends \Phalcon\CLI\Task
     public function fetchRssAction() {
 
         $sources = RssSource::find();
-        foreach($sources as $s)
+        if (count($sources) > 0)
         {
-            echo "* Fetching " . $s->getTitle() . "\n";
-            $rss = $this->getRss($s->getUrl());
-            foreach($rss as $r)
+            foreach($sources as $s)
             {
-                $content = new RssContent();
-                $r['rss_source_id'] = $s->getId();
-                $content->save($r);
+                echo "* Fetching " . $s->getTitle() . "\n";
+                $rss = $this->getRss($s->getUrl());
+                foreach($rss as $r)
+                {
+                    $content = new RssContent();
+                    $r['rss_source_id'] = $s->getId();
+                    $content->save($r);
+                }
             }
         }
+        else
+            echo "* No source found, please add new source.\n";
         echo "* Done fetching.\n\n";
     }
 
